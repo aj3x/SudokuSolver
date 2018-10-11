@@ -4,14 +4,12 @@ import unittest
 
 class Board:
     board = [[Square(x, y) for x in range(9)] for y in range(9)]
-    unfilled = 81
     move_list = list()
 
     def __init__(self):
 
         #: list of Square: Doc comment *before* attribute, with type specified
         self.board = [[Square(x, y) for x in range(9)] for y in range(9)]
-        self.unfilled = 81
         self.move_list = list()
         self.answer = None
 
@@ -145,14 +143,16 @@ class Board:
         self.board = [[Square(x, y) for x in range(9)] for y in range(9)]
 
     def set_board(self, arr):
-        self.unfilled = 81
-        for i in range(0,9):
-            for j in range(0,9):
-                self.board[i][j].reset_open()
-                if type(arr) == list:
-                    self.setPos(i,j,arr[i][j])
-                elif type(arr) == str:
-                    self.setPos(i,j,int(arr[i*9+j]))
+        if type(arr) == list:
+            for i in range(9):
+                for j in range(9):
+                    self.board[i][j].reset_open()
+                    self.setPos(i, j, arr[i][j])
+        elif type(arr) == str:
+            for i in range(9):
+                for j in range(9):
+                    self.board[i][j].reset_open()
+                    self.setPos(i, j, int(arr[i*9+j]))
         self.initialize_blocked()
 
     def initialize_blocked(self):
@@ -192,7 +192,7 @@ class Board:
         if num == 0:
             return "_"
         if num > 9 or num < 0:
-            raise ValueError("Out of bounds: "+num)
+            raise ValueError("Out of bounds: "+str(num))
         return str(num)
 
     def display(self):
@@ -217,14 +217,10 @@ class Board:
                 print("-------------------")
             # print("+-+-+-+-+-+-+-+-+-+")
 
-    def is_filled(self):
-        return self.unfilled == 0
-
     def setPos(self, x, y, num):
         assert(self.is_empty(x, y))
         self.assert_not_blocked(x, y, num)
-        if self.board[x][y].set_num(num):
-            self.unfilled -= 1
+        self.board[x][y].set_num(num)
 
     def getPos(self, x, y):
         return self.board[x][y]
@@ -274,27 +270,6 @@ class Board:
         self.setPos(x, y, num)
         self.block_intersecting(x, y, num)
 
-    def available(self, x, y):
-        arr = []
-        for i in range(10):
-            arr.append(True)
-        arr[0] = False
-        quad_x = x//3 * 3
-        quad_y = y//3 * 3
-
-        for i in range(0, 9):
-            assert(self.getPos(x, i).intersect(x,y))
-            assert(self.getPos(i, y).intersect(x,y))
-            assert(self.getPos(quad_x + i % 3, quad_y + i/3).intersect(x,y))
-            arr[self.getPos(x, i)] = False
-            arr[self.getPos(i, y)] = False
-            arr[self.getPos(quad_x + i % 3, quad_y + i/3)] = False
-
-        avail = list()
-        for i in range(1, 10):
-            if arr[i]:
-                avail.append()
-
     def assert_not_blocked(self, x, y, num):
         """
         Asserts that position can contain that number
@@ -317,9 +292,6 @@ class Board:
             assert(self.getPos(x,i).num != num)
             assert(self.getPos(i,y).num != num)
             assert(self.getPos(quad_x + i % 3, quad_y + i//3).num != num)
-        # TODO: remove comments if switching to pure logic solving
-        # if self.answer is not None:
-        #     assert(self.answer[x][y] == num)
 
     def is_solved(self):
         for i in range(0,9):
@@ -376,7 +348,7 @@ class Board:
         :return:
         :rtype: list of (int,int)
         """
-        r_list = list()
+        r_list = set()
         quad_x = x//3*3
         quad_y = y//3*3
 
@@ -467,10 +439,9 @@ class TestSudokuMethods(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    unittest.TestCase()
 
     game = Board()
-    # game.set_solve(0, 0, 5)
-    # game.board[0][2].num = 7
     game.initialize_easy()
 
     print(game.is_solved())
