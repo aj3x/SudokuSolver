@@ -36,6 +36,9 @@ class Board:
                 full += "-------------------\n"
         return full
 
+    def get_board(self):
+        return [[self.board[y][x].num for x in range(9)] for y in range(9)]
+
     def initialize_breezy(self):
         self.clear_board()
         self.answer = [
@@ -161,8 +164,8 @@ class Board:
         :return:
         :rtype: None
         """
-        for x in range(0,9):
-            for y in range(0,9):
+        for x in range(9):
+            for y in range(9):
                 # if a number is in the position
                 if not self.is_empty(x, y):
 
@@ -219,7 +222,7 @@ class Board:
 
     def setPos(self, x, y, num):
         assert(self.is_empty(x, y))
-        self.assert_not_blocked(x, y, num)
+        # self.assert_not_blocked(x, y, num)
         self.board[x][y].set_num(num)
 
     def getPos(self, x, y):
@@ -289,15 +292,73 @@ class Board:
         quad_x = x//3*3
         quad_y = y//3*3
         for i in range(0,9):
-            assert(self.getPos(x,i).num != num)
-            assert(self.getPos(i,y).num != num)
+            assert(self.getPos(x, i).num != num)
+            assert(self.getPos(i, y).num != num)
             assert(self.getPos(quad_x + i % 3, quad_y + i//3).num != num)
+
+    ERRORS_COL = 1
+    ERRORS_ROW = 2
+    ERRORS_BLK = 4
+
+    def is_solvable(self):
+        solvable = True
+        errors = dict()
+        for i in range(9):
+            col = [True for x in range(9)]
+            row = [True for x in range(9)]
+            blk = [True for x in range(9)]
+
+            quad_x = i // 3 * 3
+            quad_y = i % 3 * 3
+
+            for j in range(0, 9):
+                col_i = self.board[j][i].num-1
+                row_i = self.board[i][j].num-1
+                blk_i = self.board[quad_x + j//3][quad_y + j % 3].num-1
+
+                if col_i != -1:
+                    if col[col_i]:
+                        col[col_i] = False
+                    else:
+                        errors[j, i] = self.ERRORS_COL
+                        # print("Duplicate at", j, i)
+                        solvable = False
+
+                if row_i != -1:
+                    if row[row_i] is True:
+                        row[row_i] = False
+                    else:
+                        errors[i, j] = self.ERRORS_ROW
+                        # print("Duplicate at", i, j)
+                        solvable = False
+
+                if blk_i != -1:
+                    if blk[blk_i] is True:
+                        blk[blk_i] = False
+                    else:
+                        qx = quad_x + j // 3
+                        qy = quad_y + j % 3
+                        errors[qx, qy] = self.ERRORS_BLK
+                        # print("Duplicate at", qx, qy)
+                        solvable = False
+
+            # for k in range(0, 9):
+            #     if col[k] or row[k] or blk[k]:
+            #         if col[k]:
+            #             out = "column"
+            #         elif row[k]:
+            #             out = "row"
+            #         else:
+            #             out = "block"
+            #         print("Fault in", out, i)
+            #         return False
+            return solvable, errors
 
     def is_solved(self):
         for i in range(0,9):
-            col = [True for x in range(0,9)]
-            row = [True for x in range(0,9)]
-            blk = [True for x in range(0,9)]
+            col = [True for x in range(9)]
+            row = [True for x in range(9)]
+            blk = [True for x in range(9)]
 
             quad_x = i // 3 * 3
             quad_y = i % 3 * 3
@@ -337,8 +398,33 @@ class Board:
                     return False
         return True
 
+    # def list_errors(self, arr):
+    #     errors = list()
+    #     for i in range(9):
+    #         col = dict()
+    #         row = dict()
+    #         blk = dict()
+    #
+    #         quad_x = i // 3 * 3
+    #         quad_y = i % 3 * 3
+    #
+    #         for j in range(9):
+    #             qx_i = quad_x + j//3
+    #             qy_i = quad_y + j % 3
+    #             col_i = self.arr[j][i]-1
+    #             row_i = self.arr[i][j]-1
+    #             blk_i = self.arr[qx_i][qy_i]-1
+    #
+    #             if col_i in col:
+
+
+
+
+
+
+
     @staticmethod
-    def intersect_list(x, y):
+    def intersect_set(x, y):
         """
 
         :param x:
@@ -346,18 +432,19 @@ class Board:
         :param y:
         :type y: int
         :return:
-        :rtype: list of (int,int)
+        :rtype: set of (int,int)
         """
-        r_list = set()
+        r_set = set()
         quad_x = x//3*3
         quad_y = y//3*3
 
         for i in range(9):
-            r_list.append(x, i)
-            r_list.append(i, y)
-            r_list.append(quad_x + i % 3, quad_y + i//3)
+            r_set.append(x, i)
+            r_set.append(i, y)
+            r_set.append(quad_x + i % 3, quad_y + i//3)
 
-        return r_list
+        r_set.discard(x, y)
+        return r_set
 
 
 class TestSudokuMethods(unittest.TestCase):

@@ -1,55 +1,82 @@
 import sys
-from PyQt5 import QtCore,QtWidgets,QtGui
+from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
-import SudokuSolver
+from SudokuSolver import SudokuSolver
+import Sudoku
 
 
-class SudokuWidget(QWidget):
+class SudokuWidget(QtWidgets.QWidget):
+    boardText = ""
+    valueChanged = QtCore.pyqtSignal(bool)
+
     def __init__(self, parent=None):
+        self.solver = SudokuSolver()
         QWidget.__init__(self, parent)
+        self.errors = dict()
 
-        hbox = QHBoxLayout()
-        # hbox.addWidget(SquareWidget())
-        text = QTextEdit()
-        text23 = QLineEdit()
-        text23.setValidator(QtGui.QIntValidator(0,9))
-        text23.setFixedWidth(40)
-        if text23.text()=="":
-            print("yes")
-        text.setLineWrapMode(3)
-        text.setLineWrapColumnOrWidth(9)
-        text.setFixedHeight(40)
-        text.setTabChangesFocus(True)
+        gbox = QGridLayout()
+
 
         c1 = QGraphicsView()
         color = QtGui.QColor(0)
         color.setBlue(255)
-        gradient = QtGui.QRadialGradient(0,0,10)
+        gradient = QtGui.QRadialGradient(0, 0, 10)
         gradient.setSpread(QtGui.QGradient.RepeatSpread)
         c1.setForegroundBrush(color)
 
-        c1.setPalette(QtGui.QPalette(QtGui.QColor(250,250,200)))
+        c1.setPalette(QtGui.QPalette(QtGui.QColor(250, 250, 200)))
         c1.setAutoFillBackground(True)
-        # c1.
 
-        enter = QPushButton("Enter")
+        enter = QPushButton("Solve")
+        enter.setMaximumHeight(40)
+        enter.clicked.connect(self.solve)
 
-        hbox.addWidget(c1)
+        clear = QPushButton("Clear")
+        clear.setMaximumHeight(40)
+        clear.clicked.connect(self.clear)
 
-        # machine = QtGui.
-        s1 = QtCore.QState()
-        s1.assignProperty(text, 'text', 'Outside')
-        # text.keyPressEvent()
-        text2 = QTextEdit()
-        hbox.addWidget(text)
+        self.label = QLabel()
+
+        self.squares = SquareWidget()
+        gbox.addWidget(self.squares, 0, 0)
+        hbox = QHBoxLayout()
+        gbox.addWidget(self.label, 1, 0)
+        hbox.addWidget(clear)
         hbox.addWidget(enter)
-        hbox.addWidget(SquareWidget())
+        gbox.addLayout(hbox, 2, 0, alignment=Qt.AlignRight)
 
-        self.setLayout(hbox)
+        self.setLayout(gbox)
+
+    def clear(self):
+        self.squares.arr = [[0 for x in range(9)]for y in range(9)]
+        self.squares.update()
+
+    def solve(self):
+        err_dict, err_str = self.solver.solve_set(self.squares.getArrStr())
+        self.squares.arr = self.solver.board.get_board()
+
+        ltext = ""
+        if err_dict is not None:
+            err = err_dict.popitem()
+            if err[1] == Sudoku.Board.ERRORS_BLK:
+                ltext = "Block"
+            elif err[1] == Sudoku.Board.ERRORS_ROW:
+                ltext = "Row"
+            elif err[1] == Sudoku.Board.ERRORS_COL:
+                ltext = "Col"
+            ltext += " error at " + str(err[0])
+
+        self.label.setText(ltext)
+        self.squares.update()
+
 
 class SquareWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
+        self.arr = [[0 for x in range(9)] for y in range(9)]
+        self.intersect = dict()
+
 
         self.posx = 1
         self.posy = 1
@@ -61,6 +88,8 @@ class SquareWidget(QWidget):
         self.setAutoFillBackground(True)
         # self.newTarget()
         self.setMouseTracking(True)
+        self.setMaximumHeight(800)
+        self.setFocusPolicy(Qt.StrongFocus)
 
     def paintBox(self, painter):
         """
@@ -74,37 +103,48 @@ class SquareWidget(QWidget):
         :return:
         :rtype:
         """
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.setBrush(QtCore.Qt.blue)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(Qt.blue)
 
         width = (self.width())//9
         height = (self.height())//9
 
+        font = QtGui.QFont()
+        font.setPixelSize(48)
+        font.setFamily("Helvetica")
+        painter.setFont(font)
+        pen = QtGui.QPen()
+        pen.setStyle(Qt.DotLine)
+        painter.setPen(pen)
 
-
-
-        # painter.save()
         painter.translate(0, 0)
         for x in range(9):
             for y in range(9):
                 if x == self.selectedx and y == self.selectedy:
-                    painter.setBrush(QtCore.Qt.darkRed)
+                    painter.setBrush(Qt.green)
                 elif self.posx // width == x and self.posy // height == y:
-                    painter.setBrush(QtCore.Qt.red)
+                    painter.setBrush(Qt.lightGray)
                 else:
-                    painter.setBrush(QtCore.Qt.blue)
+                    painter.setBrush(Qt.gray)
+
                 offset_x = 1
                 offset_y = 1
 
-                if x % 2 == 0:
-                    offset_x = 0
+                if x % 3 == 2:
+                    offset_x = 3
 
-                if y % 2 == 0:
-                    offset_y = 0
+                if y % 3 == 2:
+                    offset_y = 3
 
-                painter.drawRect(QtCore.QRect(x * width + offset_x, y * height+offset_y,
-                                              width - 2*offset_x, height - 2*offset_y))
-        # painter.restore()
+                rect = QtCore.QRectF(x * width + offset_x//2, y * height+offset_y//2,
+                                     width - 2*offset_x, height - 2*offset_y)
+                painter.drawRect(rect)
+
+                painter.setBrush(Qt.black)
+                painter.drawText(x*width+8, y*height-10, width,height+10,0, self.getStrPos(y, x))
+
+    def getStrPos(self, x, y):
+        return str(self.arr[x][y]).strip("0")
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
@@ -116,20 +156,16 @@ class SquareWidget(QWidget):
     def mouseMoveEvent(self, event):
         pos = event.pos()
 
-        print("moved", pos.x(),pos.y())
-
         self.posx = pos.x()
         self.posy = pos.y()
         self.update()
 
     def mousePressEvent(self, event):
-        print("pressed")
-
         width = self.width()/9
         height = self.height()/9
 
-        self.selectedx = event.pos().x()//width
-        self.selectedy = event.pos().y()//height
+        self.selectedx = int(event.pos().x()//width)
+        self.selectedy = int(event.pos().y()//height)
 
         self.update()
 
@@ -141,14 +177,73 @@ class SquareWidget(QWidget):
         :return:
         :rtype:
         """
-        print("keyPressed")
-        print(event.key())
+        num = -1
+        key = event.key()
+        if key == Qt.Key_Space:
+            num = 0
+        elif key == Qt.Key_Backspace or key == Qt.Key_Delete:
+            self.setCurPos(0)
+        elif key == Qt.Key_Left:
+            self.selectedx = (self.selectedx - 1) % 9
+        elif key == Qt.Key_Right:
+            self.selectedx = (self.selectedx + 1) % 9
+        elif key == Qt.Key_Up:
+            self.selectedy = (self.selectedy - 1) % 9
+        elif key == Qt.Key_Down:
+            self.selectedy = (self.selectedy + 1) % 9
+        else:
+            num = event.key() - 48
 
+        if 0 <= num < 10:
+            self.setCurPos(num)
+            self.addPos()
+
+        self.update()
+
+    def setCurPos(self, num):
+        if self.in_range(self.selectedx) and self.in_range(self.selectedy):
+            self.arr[self.selectedy][self.selectedx] = num
+
+            # TODO: Show numbers that are error on type
+            # for (x, y) in Sudoku.Board.intersect_set(self.selectedx, self.selectedy):
+            #     if self.arr[x][y] == num:
+            #         if self.selectedx == x:
+            #             code = 0
+            #         elif self.selectedy == y:
+            #             code = 1
+            #         else:
+            #             code = 2
+            #
+
+
+    def in_range(self, num):
+        return 0 <= num < 10
+
+    def addPos(self):
+        self.selectedx = self.selectedx + 1
+        if self.selectedx is 9:
+            self.selectedx = 0
+            self.selectedy = (self.selectedy + 1) % 9
+
+    def getArrStr(self):
+        r_str = ""
+        for i in range(9):
+            for j in range(9):
+                if 9 < self.arr[i][j] < 0:
+                    print("Number out of bounds")
+                    r_str += "0"
+                else:
+                    r_str += str(self.arr[i][j])
+        return r_str
 
 
 if __name__ == "__main__":
-
     app = QtWidgets.QApplication(sys.argv)
+
     widget = SudokuWidget()
+    widget.setWindowTitle("Sudoku Solver")
+    icon = QtGui.QIcon("9.png")
+    widget.setWindowIcon(icon)
     widget.show()
+
     sys.exit(app.exec_())

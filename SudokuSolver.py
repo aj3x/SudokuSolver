@@ -25,12 +25,8 @@ class SudokuSolver:
             self.board.initialize_breezy()
         for x in range(9):
             for y in range(9):
-                if self.board.getPos(x,y).is_empty():
-                    self.open_squares[x,y] = self.board.getPos(x,y)
-
-    def block_check(self, x, y, num):
-        if self.board.block_num(x, y, num):
-            self.single_num(x, y)
+                if self.board.getPos(x, y).is_empty():
+                    self.open_squares[x, y] = self.board.getPos(x, y)
 
     def get_intersecting(self, x, y):
         """
@@ -49,8 +45,8 @@ class SudokuSolver:
 
         for i in range(0, 9):
             self.add_on_empty(visit_set, x, i)   # col
-            self.add_on_empty(visit_set, i, y)   #row
-            self.add_on_empty(visit_set, quad_x + i // 3, quad_y + i % 3)    #blk
+            self.add_on_empty(visit_set, i, y)   # row
+            self.add_on_empty(visit_set, quad_x + i // 3, quad_y + i % 3)    # blk
 
         return visit_set
 
@@ -75,11 +71,12 @@ class SudokuSolver:
         for i in range(9):
             for j in range(9):
                 if self.board.is_empty(i, j):
-                    single.append((i,j))
+                    single.append((i, j))
 
         print(single)
 
         while len(single) > 0:
+            # sort open squares by number of possibilities
             single.sort(key=lambda l: self.board.getPos(l[0], l[1]).open_count)
 
             item = single.pop(0)
@@ -91,6 +88,7 @@ class SudokuSolver:
                     self.reset_to_previous()
 
             else:
+                # try guessing
                 self.decisions.append(BoardDecision(self.board.__repr__(), item, 0, pos.open_list()))
                 try:
                     self.board.set_block(item[0], item[1], pos.open_list()[0])
@@ -100,10 +98,16 @@ class SudokuSolver:
 
     def reset_to_previous(self):
         """
+        Resets board state to previous decision and tries another path.
+        If all paths on that node have been tried move up another node
+        and try from that point.
+
         :return:
-        :rtype:
+        :rtype: None
         """
         length = len(self.decisions)
+
+        # if all paths have been tried return false
         if length is 0:
             self.solved = False
             return
@@ -117,8 +121,29 @@ class SudokuSolver:
             self.board.set_block(previous.pos[0], previous.pos[1], previous.open_list[previous.try_num])
             self.decisions.append(previous)
             self.trial_solve()
+        # tried all possibilities on this node try the previous node
         else:
             self.reset_to_previous()
+
+    def solve_set(self, arr):
+        """
+
+        :param arr:
+        :type arr:
+        :return:
+        :rtype: dict of int, str
+        """
+        self.board.clear_board()
+        self.board.set_board(arr)
+        self.board.initialize_blocked()
+        for i in range(9):
+            for j in range(9):
+                pos = self.board.getPos(i, j)
+                solvable, errors = self.board.is_solvable()
+                if pos.num == 0 == pos.open_count or not solvable:
+                    return errors, "invalid board"
+        self.trial_solve()
+        return None, None
 
 
 class BoardDecision:
@@ -155,7 +180,6 @@ if __name__ == '__main__':
     print(total_time)
     print(solve.solved)
     assert solve.board.is_solved() is solve.solved
-
 
     # visited = set()
     # solve.add_on_empty(visited, 0, 2)
