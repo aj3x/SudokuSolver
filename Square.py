@@ -51,6 +51,11 @@ class Square:
         return self.open_list().pop(0)
 
     def is_empty(self):
+        """
+        Returns true if space is unfilled
+        :return:
+        :rtype: bool
+        """
         return self.num == 0
 
     def get_num(self):

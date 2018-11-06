@@ -5,38 +5,31 @@ from time import time
 
 class SudokuSolver:
     """
-    Properties created with the ``@property`` decorator should be documented
-    in the property's getter method.
-
     Attributes:
         decisions (BoardDecision): list of decisions for guesses made.
 
     """
 
     def __init__(self, board=None):
-        self.to_visit = set()
-        self.open_squares = dict()
         self.decisions = list()
         self.solved = False
+
         if board is not None and type(board) is Board:
             self.board = board
         else:
+            # Initialize easy board
             self.board = Board()
-            self.board.initialize_breezy()
-        for x in range(9):
-            for y in range(9):
-                if self.board.getPos(x, y).is_empty():
-                    self.open_squares[x, y] = self.board.getPos(x, y)
+            self.board.initialize_easy()
 
     def get_intersecting(self, x, y):
         """
         Return a set of all empty squares that intersect with the selected square
 
-        :param x:
+        :param x: row index
         :type x: int
-        :param y:
+        :param y: column index
         :type y: int
-        :return:
+        :return: Set of all empty squares that intersect with selected square
         :rtype: set
         """
         visit_set = set()
@@ -66,32 +59,37 @@ class SudokuSolver:
             hash_set.add((x, y))
 
     def trial_solve(self):
-        single = list()
-        # decisions = list()
+        """
+        Attempts to solve the board using trial and error while selecting squares
+        that reduce the number of attempts needed. 
+
+        :return:
+        :rtype: None
+        """
+        empty_squares = list()
         for i in range(9):
             for j in range(9):
                 if self.board.is_empty(i, j):
-                    single.append((i, j))
+                    empty_squares.append((i, j))
 
-        print(single)
-
-        while len(single) > 0:
+        while len(empty_squares) > 0:
             # sort open squares by number of possibilities
-            single.sort(key=lambda l: self.board.getPos(l[0], l[1]).open_count)
+            empty_squares.sort(key=lambda l: self.board.getPos(l[0], l[1]).open_count)
 
-            item = single.pop(0)
-            pos = self.board.getPos(item[0], item[1])
+            square = empty_squares.pop(0)
+            pos = self.board.getPos(square[0], square[1])
             if pos.has_single():
                 try:
-                    self.board.set_block(item[0], item[1], pos.get_single())
+                    self.board.set_block(square[0], square[1], pos.get_single())
                 except AssertionError:
+                    # Catch assertions that would make board state invalid
                     self.reset_to_previous()
 
             else:
                 # try guessing
-                self.decisions.append(BoardDecision(self.board.__repr__(), item, 0, pos.open_list()))
+                self.decisions.append(BoardDecision(self.board.__repr__(), square, 0, pos.open_list()))
                 try:
-                    self.board.set_block(item[0], item[1], pos.open_list()[0])
+                    self.board.set_block(square[0], square[1], pos.open_list()[0])
                 except IndexError:
                     self.solved = True
                     return
@@ -125,26 +123,6 @@ class SudokuSolver:
         else:
             self.reset_to_previous()
 
-    def solve_set(self, arr):
-        """
-
-        :param arr:
-        :type arr:
-        :return:
-        :rtype: dict of int, str
-        """
-        self.board.clear_board()
-        self.board.set_board(arr)
-        self.board.initialize_blocked()
-        for i in range(9):
-            for j in range(9):
-                pos = self.board.getPos(i, j)
-                solvable, errors = self.board.is_solvable()
-                if pos.num == 0 == pos.open_count or not solvable:
-                    return errors, "invalid board"
-        self.trial_solve()
-        return None, None
-
 
 class BoardDecision:
     def __init__(self, board, position, try_num, open_list):
@@ -153,11 +131,11 @@ class BoardDecision:
 
         :param board: board state represented as string
         :type board: str
-        :param position:
+        :param position: indices of the square (x,y)
         :type position: (int, int)
-        :param try_num:
+        :param try_num: how many possibilites have been tried
         :type try_num: int
-        :param open_list:
+        :param open_list: list of possibilites
         :type open_list: list of int
         """
         self.board = board
@@ -169,19 +147,14 @@ class BoardDecision:
 if __name__ == '__main__':
     total_time = time()
     solve = SudokuSolver()
-    # solve.board.initialize_hard()
     solve.board.clear_board()
-    solve.board.initialize_blocked()
+    solve.board.initialize_hard()
     init_time = time() - total_time
     solve.trial_solve()
     total_time = time() - total_time
     print(solve.board)
-    print(init_time)
-    print(total_time)
-    print(solve.solved)
+    print("Init Time: %5f" % init_time)
+    print("Total Time: %5f" % total_time)
+    print("Is solved:",solve.solved)
     assert solve.board.is_solved() is solve.solved
 
-    # visited = set()
-    # solve.add_on_empty(visited, 0, 2)
-    # lol = visited.pop()
-    # print(lol)
