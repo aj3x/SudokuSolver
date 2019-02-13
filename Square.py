@@ -20,7 +20,8 @@ class Square:
         if self.num == 0:
             str_r = "("
             first = True
-            for i in range(0,9):
+
+            for i in range(9):
                 if self.open[i]:
                     if first:
                         first = False
@@ -57,11 +58,10 @@ class Square:
         return self.num
 
     def open_list(self):
-        """
-        Returns a list of open numbers from 1-9
+        """Returns a list of open numbers from 1-9
 
-        :return: List of open numbers
-        :rtype: list of int
+        Returns:
+            list[int]: List of open numbers
         """
         num_list = list()
 
@@ -76,13 +76,13 @@ class Square:
         self.open = [True for x in range(0, 9)]
 
     def set_num(self, number):
-        """
-        Sets number and removes blocked if not equal to zero
+        """Sets number and removes blocked if not equal to zero
 
-        :param number: number to replace
-        :type number: int
-        :return: True if number isn't 0
-        :rtype: bool
+        Args:
+            number (int): number to replace
+
+        Returns:
+            bool: True if number isn't 0, false otherwise
         """
         self.in_range(number)
         self.num = number
@@ -99,11 +99,11 @@ class Square:
     def block_num(self, number):
         """
 
+        Args:
+            number (int): number in range 0
 
-        :param number: number in range 0
-        :type number: int
-        :return: True if value wasn't previously blocked
-        :rtype: bool
+        Returns:
+            bool: True if the value wasn't previously blocked, False otherwise
         """
         self.in_range(number)
         if self.is_empty() and self.open[number-1]:
@@ -116,65 +116,67 @@ class Square:
     def intersect(self, other):
         """
 
-        :param other:
-        :type other: Square
-        :return:
-        :rtype: bool
+        Args:
+            other (Square):
+
+        Returns:
+            bool:
         """
-        return self.x == other.x or self.y == other.y or (self.get_region() == other.get_region())
+        same_row = self.x == other.x
+        same_col = self.y == other.y
+        same_reg = self.get_region() == other.get_region()
+        return same_row or same_col or same_reg
 
     def get_region(self):
-        """
-        Return tuple of int from range(0,2)
+        """Return tuple of int from range(0,2)
 
-        :return:
-        :rtype: tuple of int
+        Returns:
+            (int,int):
         """
         return self.x // 3, self.y // 3
 
 
 class TestSquareMethods(unittest.TestCase):
+    def setUp(self):
+        self.s = Square(0, 0)
+
     def test_init(self):
-        s = Square(0, 0)
-        self.assertEqual(s.is_empty(), True)
-        self.assertEqual(s.has_single(), False)
-        self.assertEqual(s.get_num(), 0)
+        self.assertEqual(self.s.is_empty(), True)
+        self.assertEqual(self.s.has_single(), False)
+        self.assertEqual(self.s.get_num(), 0)
 
     def test_set_num(self):
-        s = Square(0, 0)
+        self.s.set_num(0)
+        self.assertEqual(self.s.is_empty(), True)
+        self.assertEqual(self.s.has_single(), False)
+        self.assertEqual(self.s.get_num(), 0)
 
-        s.set_num(0)
-        self.assertEqual(s.is_empty(), True)
-        self.assertEqual(s.has_single(), False)
-        self.assertEqual(s.get_num(), 0)
-
-        s.set_num(1)
-        self.assertEqual(s.is_empty(), False)
-        self.assertEqual(s.has_single(), False)
-        self.assertEqual(s.get_num(), 1)
+        self.s.set_num(1)
+        self.assertEqual(self.s.is_empty(), False)
+        self.assertEqual(self.s.has_single(), False)
+        self.assertEqual(self.s.get_num(), 1)
 
     def test_open_list(self):
-        s = Square(0, 0)
-        self.assertEqual(s.block_num(1), True)
-        self.assertEqual(s.block_num(1), False)
-        self.assertEqual(s.open, [False, True, True, True, True, True, True, True, True])
-        self.assertEqual(s.has_single(), False)
-        self.assertEqual(s.open_count, 8)
+        self.s = Square(0, 0)
+        self.assertEqual(self.s.block_num(1), True)
+        self.assertEqual(self.s.block_num(1), False)
+        self.assertEqual(self.s.open, [False, True, True, True, True, True, True, True, True])
+        self.assertEqual(self.s.has_single(), False)
+        self.assertEqual(self.s.open_count, 8)
 
     def test_single(self):
-        s = Square(0, 0)
-        self.assertEqual(s.block_num(1), True)
-        self.assertEqual(s.block_num(2), True)
-        self.assertEqual(s.block_num(3), True)
-        self.assertEqual(s.block_num(4), True)
-        self.assertEqual(s.block_num(5), True)
-        self.assertEqual(s.block_num(6), True)
-        self.assertEqual(s.block_num(9), True)
-        self.assertEqual(s.has_single(), False)
-        self.assertEqual(s.open_count, 2)
-        self.assertEqual(s.block_num(8), True)
-        self.assertEqual(s.has_single(), True)
-        self.assertEqual(s.open_count, 1)
+        self.assertEqual(self.s.block_num(1), True)
+        self.assertEqual(self.s.block_num(2), True)
+        self.assertEqual(self.s.block_num(3), True)
+        self.assertEqual(self.s.block_num(4), True)
+        self.assertEqual(self.s.block_num(5), True)
+        self.assertEqual(self.s.block_num(6), True)
+        self.assertEqual(self.s.block_num(9), True)
+        self.assertEqual(self.s.has_single(), False)
+        self.assertEqual(self.s.open_count, 2)
+        self.assertEqual(self.s.block_num(8), True)
+        self.assertEqual(self.s.has_single(), True)
+        self.assertEqual(self.s.open_count, 1)
 
     def test_intersect(self):
         a = Square(1, 1)
